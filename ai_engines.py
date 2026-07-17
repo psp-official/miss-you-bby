@@ -684,8 +684,8 @@ def psp_ai_predict(history_list):
     base_prob = 55.0
     reason = "Pattern အသစ်ဖြစ်နေသဖြင့် သမိုင်းကြောင်းအရ တွက်ချက်ထားသည်"
     
-    MAX_PATTERN_LENGTH = 4
-    MIN_PATTERN_LENGTH = 4
+    MAX_PATTERN_LENGTH = 7
+    MIN_PATTERN_LENGTH = 7
     pattern_found = False
     
     # နောက်ဆုံး ပွဲစဉ်ကို ရယူပြီး pattern ရှာခြင်း

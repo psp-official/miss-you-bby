@@ -934,6 +934,17 @@ async def auto_bet_loop(user_tg_id, message: types.Message):
     is_virtual = session.get("is_virtual_mode", False)
     gn = session.get("game_type_name", "WINGO_30S")
     
+    # ==========================================
+    # 📊 Streak Tracking Variables
+    # ==========================================
+    current_win_streak = 0
+    current_lose_streak = 0
+    longest_win_streak = 0
+    longest_lose_streak = 0
+    total_bets = 0
+    total_wins = 0
+    total_losses = 0
+    
     if not is_virtual:
         site_config = SITE_CONFIGS.get(session['site'])
         bal_url = f"{site_config['api_url']}/GetBalance"
@@ -1081,7 +1092,10 @@ async def auto_bet_loop(user_tg_id, message: types.Message):
                     actual = res.split(" | ")[1].strip().lower() 
                     update_model_accuracies(user_tg_id, actual)
                     
+                    total_bets += 1
+                    
                     if pred.lower() == actual:
+                        # ========== WIN ==========
                         prof = amt * 0.96
                         stat = f"{E_SETTING} <b>WIN</b> {E_CROWN} +{prof} Ks"
                         
@@ -1093,9 +1107,18 @@ async def auto_bet_loop(user_tg_id, message: types.Message):
                         active_sessions[user_tg_id]["current_bet_step"] = 0
                         active_sessions[user_tg_id]["current_misses"] = 0
                         
+                        # ✅ Streak Update
+                        current_win_streak += 1
+                        current_lose_streak = 0
+                        total_wins += 1
+                        
+                        if current_win_streak > longest_win_streak:
+                            longest_win_streak = current_win_streak
+                        
                     elif actual == "?":
                         stat = "⚙️ DRAW (Pending)"
                     else:
+                        # ========== LOSE ==========
                         stat = f"{E_SETTING} <b>LOSE</b> {E_LOSS} {amt} Ks"
                         
                         if is_virtual:
@@ -1104,6 +1127,14 @@ async def auto_bet_loop(user_tg_id, message: types.Message):
                             active_sessions[user_tg_id]["session_profit"] -= amt
                             
                         active_sessions[user_tg_id]["current_bet_step"] = (step + 1) % len(seq)
+                        
+                        # ❌ Streak Update
+                        current_lose_streak += 1
+                        current_win_streak = 0
+                        total_losses += 1
+                        
+                        if current_lose_streak > longest_lose_streak:
+                            longest_lose_streak = current_lose_streak
                         
                     if ai_name == "Set Pattern" and actual != "?":
                         current_c_step = session.get("custom_pattern_step", 0)
@@ -1115,13 +1146,15 @@ async def auto_bet_loop(user_tg_id, message: types.Message):
                     else:
                         c_prof = active_sessions[user_tg_id].get("session_profit", 0.0)
                     
+                    win_rate = (total_wins / total_bets) * 100 if total_bets > 0 else 0.0
+                    
                     result_txt = (
                         f"<blockquote>\n"
                         f"{stat}\n"
                         f"───────────────\n"
                         f"{E_GRID} {gn} : <code>{issue}</code>\n"
                         f"{E_GRID} Result: <code>{res}</code>\n"
-                        f"{E_EDIT} Bal: K{n_bal:,.2f}\n"
+                        f"{E_EDIT} Bal: K{n_bal:,.2f} 〔{longest_win_streak} | {longest_lose_streak}〕\n"
                         f"{E_EDIT} Total Profit: {c_prof:,.2f} Ks\n"
                         f"</blockquote>"
                     )

@@ -821,7 +821,7 @@ async def prediction_broadcast_loop(user_tg_id, message: types.Message):
                 if gn == "WINGO_1M":
                     await asyncio.sleep(30)
                 elif gn == "WINGO_30S":
-                    await asyncio.sleep(5)
+                    await asyncio.sleep(10)
                     
                 active_sessions[user_tg_id]["last_predicted_issue"] = issue
                 active_sessions[user_tg_id]["last_prediction_value"] = pred

@@ -1,9 +1,9 @@
-# ai_engines.py  
+# ai_engines.py
 import numpy as np
 import time
 import random
+import math
 from collections import defaultdict
-from aiogram.types import KeyboardButton
 
 # ==========================================================
 # 🌟 Premium Emojis for AI Messages
@@ -65,6 +65,7 @@ AI_MODE_EMOJIS = {
     "Circle Rnd":        "5226711870492126219",
     "Custom Pattern":    "6300853298249336390",
     "AI Auto Swap":      "5868665489092263539",
+    "🏆 Best AI Selector": "5884289942371401145"
 }
 
 # ==========================================================
@@ -109,7 +110,6 @@ def _ema_ratio(history, span):
         weight *= (1 - alpha)
     return w_big / w_sum if w_sum else 0.5
 
-
 # ============================================================
 # 1. Pattern AI
 # ============================================================
@@ -130,7 +130,7 @@ def detect_active_pattern(history_list):
         ("BSB",  ["BIG","SMALL","BIG"],                    "BIG"),
         ("SBS",  ["SMALL","BIG","SMALL"],                  "SMALL"),
         ("BBSS", ["BIG","BIG","SMALL","SMALL"],            "BIG"),
-        ("SSBB", ["SMALL","SMALL","BIG","BIG"],            "SMALL"),
+        ("SSBB", ["SMALL","BIG","BIG","SMALL"],            "SMALL"),
         ("BSBS", ["BIG","SMALL","BIG","SMALL"],            "BIG"),
         ("SBSB", ["SMALL","BIG","SMALL","BIG"],            "SMALL"),
         ("BBBS", ["BIG","BIG","BIG","SMALL"],              "BIG"),
@@ -664,7 +664,6 @@ def auto_swap_predict(history_docs):
 
     return predicted, f"🔄 {predicted} ({burmese}) {dot}", conf, f"🔄 Auto Swap ({recent_str} → {predicted})"
 
-
 def psp_ai_predict(history_list):
     """
     10-Pattern Dynamic Learning AI
@@ -747,7 +746,6 @@ def psp_ai_predict(history_list):
         "reason": reason,
         "display": predicted
     }
-
 
 # ============================================================
 # 👑 PRO AI FEATURES & NEW ADVANCED MODELS
@@ -1065,7 +1063,6 @@ def ensemble_predict(history_docs):
         conf = min(58 + (small_w / total_w) * 30, 90)
         return "SMALL", f"{P_AI_ROBOT} SMALL (အသေး) 🟢", conf, f"{P_AI_ROBOT} Ensemble {small_n}AI→SMALL W:{small_w:.1f}:{big_w:.1f}"
 
-
 def pro_max_predict(history_docs):
     if len(history_docs) < 15:
         return "BIG", f"👑 Pro Max (အကြီး) 🔴", 55.0, "👑 Pro Max: Data စုဆောင်းဆဲ..."
@@ -1074,26 +1071,26 @@ def pro_max_predict(history_docs):
     pro_predictors = [
         pro_lstm_predict,
         pro_gru_predict,
-  #      pro_xgboost_predict,
-  #      pro_lightgbm_predict,
+        pro_xgboost_predict,
+        pro_lightgbm_predict,
         pro_rl_predict,
         pro_ensemble_stacking_predict,
         pro_rolling_stats_predict,
-    #    pro_entropy_predict,
-     #   pro_streak_momentum_predict,
-     #   pro_real_ml_predict,
-    #    ml_style_predict,
-     #   markov_chain_predict,
-    #    bayesian_predict,
-     #   chaos_theory_predict,
-    #    wave_analysis_predict,
-     #   quick_reversal_predict,
-     #   neural_pattern_predict,
-    #    monte_carlo_predict,
-      #  momentum_predict,
-     #   golden_ratio_predict,
-       # fibonacci_predict,
-      #  trend_following_predict,
+        pro_entropy_predict,
+        pro_streak_momentum_predict,
+        pro_real_ml_predict,
+        ml_style_predict,
+        markov_chain_predict,
+        bayesian_predict,
+        chaos_theory_predict,
+        wave_analysis_predict,
+        quick_reversal_predict,
+        neural_pattern_predict,
+        monte_carlo_predict,
+        momentum_predict,
+        golden_ratio_predict,
+        fibonacci_predict,
+        trend_following_predict,
         babathapai_predict
     ]
 
@@ -1137,6 +1134,67 @@ def pro_max_predict(history_docs):
     # Output ပြန်ထုတ်ပေးခြင်း
     return final_pred, f"👑 Pro Max {final_pred} ({burmese}) {dot}", final_conf, f"👑 Pro Max Vote: B({big_count}) S({small_count})"
 
+# ==========================================================
+# 🏆 BEST AI SELECTOR (Auto-Optimizer from 9000+ Database)
+# ==========================================================
+def best_ai_selector_predict(history_docs):
+    """
+    Database ထဲက 9000+ ပွဲစဉ်ကို အသုံးပြုပြီး 
+    နောက်ဆုံးပွဲ 5000 မှာ Win Rate အမြင့်ဆုံး AI Model ကို ရွေးချယ်ခန့်မှန်းပေးခြင်း။
+    """
+    if len(history_docs) < 100:
+        return "BIG", "🏆 BEST AI (အကြီး) 🔴", 55.0, "Data မလုံလောက်သေး (Need 100+ games)"
+
+    docs = list(reversed(history_docs))  # oldest to newest (9000+)
+    all_history = [d.get('size', 'BIG') for d in docs]
+    
+    # နောက်ဆုံး 5000 ပွဲကို ဖြတ်ယူမည်
+    start_index = max(0, len(all_history) - 5000)
+    recent_5000 = all_history[start_index:]
+    test_size = len(recent_5000) - 50
+    
+    if test_size < 50:
+        return "BIG", "🏆 BEST AI (အကြီး) 🔴", 55.0, "Test data မလုံလောက်ပါ"
+
+    all_ai_keys = list(AI_MODES.keys())
+    model_win_rates = {}
+    
+    for model_key in all_ai_keys:
+        if model_key in ["circle_rnd", "custom_pattern", "best_ai_selector", "pro_max"]:
+            continue
+            
+        win_count, total_bets = 0, 0
+        for i in range(0, test_size):
+            current_data = docs[: start_index + i + 1]
+            try:
+                func = AI_MODES[model_key]["func"]
+                pred, _, _, _ = func(current_data)
+                actual = all_history[start_index + i + 1]
+                if pred == "wait":
+                    continue
+                total_bets += 1
+                if pred == actual:
+                    win_count += 1
+            except:
+                continue
+                
+        if total_bets > 50:
+            model_win_rates[model_key] = (win_count / total_bets) * 100
+
+    if not model_win_rates:
+        return "BIG", "🏆 BEST AI (အကြီး) 🔴", 55.0, "Backtest မအောင်မြင်ပါ"
+
+    best_key = max(model_win_rates, key=model_win_rates.get)
+    best_rate = model_win_rates[best_key]
+    best_name = AI_MODES[best_key]["name"]
+
+    try:
+        func = AI_MODES[best_key]["func"]
+        pred, display, conf, reason = func(history_docs)
+        final_conf = min((conf + best_rate) / 2, 95.0)
+        return pred, f"🏆 {best_name}: {display}", final_conf, f"Best AI (Win Rate: {best_rate:.1f}% over {test_size} games) → {reason}"
+    except:
+        return "BIG", f"🏆 {best_name} (အကြီး) 🔴", best_rate, f"Best AI Auto-Selected (Win Rate: {best_rate:.1f}%)"
 
 # ==========================================
 # 📊 AI Modes Dictionary Update
@@ -1233,13 +1291,3 @@ def get_prediction(history_docs, mode, user_pattern=None, model_accuracies=None)
     mode_info = AI_MODES.get(mode)
     if mode_info: return mode_info["func"](history_docs)
     return AI_MODES["pattern"]["func"](history_docs)
-
-def get_ai_mode_buttons():
-    buttons = []
-    for mode_key, mode_info in AI_MODES.items():
-        if mode_key.startswith("pro_") or mode_key == "babathapai": continue 
-        mode_name = mode_info["name"]
-        emoji_id  = AI_MODE_EMOJIS.get(mode_name, "6300853298249336390")
-        btn = KeyboardButton(text=mode_name, icon_custom_emoji_id=emoji_id, style="primary")
-        buttons.append(btn)
-    return buttons

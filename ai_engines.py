@@ -621,7 +621,8 @@ def ml_style_predict(history_docs):
         return last, f"{P_AI_SPARKLES} {last} ({burmese}) {dot}", 55.0, f"{P_AI_SPARKLES} ML8F Neutral {score:.4f}"
 
 def circle_rnd_predict(history_docs):
-    predicted = random.choice(["BIG", "SMALL"])
+    wheel = ["BIG", "SMALL", "BIG", "SMALL", "BIG", "SMALL", "BIG", "SMALL"]
+    predicted = random.choice(wheel)
     burmese, dot = _label(predicted)
     return predicted, f"{P_AI_STAR} {predicted} ({burmese}) {dot}", round(random.uniform(50.0, 65.0), 1), "🎡 Circle Rnd: Spinner"
 
@@ -1158,7 +1159,7 @@ AI_MODE_NAMES = {
     "markov_chain":     "Markov Chain",
     "ml_style":         "ML Style AI",
     "circle_rnd":       "Circle Rnd",
-    "custom_pattern":   "🛠️ Set Pattern",
+    "custom_pattern":   "Set Pattern",
     "auto_swap":        "AI Auto Swap",
 }
 

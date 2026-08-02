@@ -620,11 +620,6 @@ async def get_latest_game_result(target_issue, user_tg_id):
 # 🧠 GET AI PREDICTION (PSP_AI_PREDICT Version)
 # ==========================================================
 async def get_ai_prediction(user_tg_id):
-    """
-    PSP_AI_PREDICT ကို အသုံးပြု၍ ခန့်မှန်းချက် ရယူခြင်း
-    - Database မှ နောက်ဆုံး 5000 ပွဲစာကို ဆွဲယူမည်
-    - Pattern အလိုက် ခန့်မှန်းချက် ထုတ်ပေးမည်
-    """
     session_data = active_sessions.get(user_tg_id, {})
     if not session_data:
         return None, 0, None, None
@@ -636,9 +631,6 @@ async def get_ai_prediction(user_tg_id):
     config = SITE_CONFIGS.get(site)
     url = f"{config['api_url']}/GetNoaverageEmerdList"
     
-    # ==========================================================
-    # 1️⃣ API မှ နောက်ဆုံးပွဲစဉ် ရယူခြင်း (နောက်ပွဲစဉ် သိရန်)
-    # ==========================================================
     payload = {'pageSize': 100, 'pageNo': 1, 'typeId': type_id, 'language': 7}
     headers = get_headers(site, token)
     signed_payload = get_signed_payload(payload)
@@ -652,54 +644,37 @@ async def get_ai_prediction(user_tg_id):
         if not records:
             return None, 0, None, None
             
-        # နောက်ဆုံးထွက်ပွဲနှင့် နောက်ပွဲစဉ်
         last_completed_issue = records[0]['issueNumber']
         next_issue = str(int(last_completed_issue) + 1)
         
-        # ==========================================================
-        # 2️⃣ Database ထဲသို့ ရလဒ်အသစ်များ သိမ်းဆည်းခြင်း
-        # ==========================================================
         for item in records:
             num = int(item['number'])
             size_text = "BIG" if num >= 5 else "SMALL"
             await db.save_game_record(site, type_id, item['issueNumber'], num, size_text)
         
-        # ==========================================================
-        # 3️⃣ Database မှ သမိုင်းကြောင်း (History) ဆွဲယူခြင်း
-        # ==========================================================
         db_records = await db.get_game_history(site, type_id, limit=5000)
         
-        # History list ကို ပြင်ဆင်ခြင်း (နောက်ဆုံးထွက်ပွဲမှ စ၍)
         history_list = []
         for item in db_records:
             history_list.append(item['size'])
         
-        # Database မှ ဒေတာမရပါက API မှရထားသော ဒေတာကို သုံးမည်
         if not history_list:
             for item in records:
                 num = int(item['number'])
                 size_text = "BIG" if num >= 5 else "SMALL"
                 history_list.append(size_text)
         
-        # ==========================================================
-        # 4️⃣ PSP_AI_PREDICT ကို ခေါ်သုံးခြင်း
-        # ==========================================================
-        # AI Engine မှ pattern prediction ကို ရယူခြင်း
         from ai_engines import psp_ai_predict
         
         result = psp_ai_predict(history_list)
         
-        predicted_size = result["prediction"]  # "BIG" or "SMALL"
-        confidence = result["confidence"]      # 55.0 - 85.0
-        reason = result["reason"]              # အကြောင်းပြချက်
-        display = result["display"]            # "BIG (အကြီး) 🔴" or "SMALL (အသေး) 🟢"
+        predicted_size = result["prediction"]
+        confidence = result["confidence"]
+        reason = result["reason"]
+        display = result["display"]
         
-        # ==========================================================
-        # 5️⃣ AI Mode အလိုက် ခန့်မှန်းချက် (Default အနေဖြင့် PSP_AI_PREDICT သုံးမည်)
-        # ==========================================================
         user_ai_name = session_data.get("ai_mode", "PSP_AI_PREDICT")
         
-        # Set Pattern ဆိုပါက user သတ်မှတ်ထားသော pattern ကို သုံးမည်
         if user_ai_name == "Set Pattern":
             pat = session_data.get("custom_pattern", ["BIG"])
             step = session_data.get("custom_pattern_step", 0)
@@ -714,7 +689,6 @@ async def get_ai_prediction(user_tg_id):
                     
             return target_bet.lower(), 100, next_issue, user_ai_name
         
-        # ကျန်သော AI Modes များအတွက် ai_engines.py မှ ရယူမည်
         elif user_ai_name != "PSP_AI_PREDICT":
             mode_key = "pattern"
             for key, val in ai_engines.AI_MODES.items():
@@ -722,18 +696,14 @@ async def get_ai_prediction(user_tg_id):
                     mode_key = key
                     break
             
-            # Model အစစ်ခေါ်ယူခြင်း
             model_acc = session_data.get("model_accuracies", {})
             predicted_size, _, confidence, _ = ai_engines.get_prediction(
-                history_docs=db_records,  # ဒေတာကို doc format အတိုင်း ပေးရန်
+                history_docs=db_records,
                 mode=mode_key,
                 model_accuracies=model_acc
             )
             return predicted_size.lower(), confidence, next_issue, user_ai_name
         
-        # ==========================================================
-        # 6️⃣ PSP_AI_PREDICT ရလဒ်ကို ပြန်ပေးခြင်း
-        # ==========================================================
         return predicted_size.lower(), confidence, next_issue, user_ai_name
         
     except Exception as e:
@@ -851,7 +821,7 @@ async def prediction_broadcast_loop(user_tg_id, message: types.Message):
                 if gn == "WINGO_1M":
                     await asyncio.sleep(30)
                 elif gn == "WINGO_30S":
-                    await asyncio.sleep(5)
+                    await asyncio.sleep(10) # 10s wait so it shows 20s before result
                     
                 active_sessions[user_tg_id]["last_predicted_issue"] = issue
                 active_sessions[user_tg_id]["last_prediction_value"] = pred
@@ -934,9 +904,6 @@ async def auto_bet_loop(user_tg_id, message: types.Message):
     is_virtual = session.get("is_virtual_mode", False)
     gn = session.get("game_type_name", "WINGO_30S")
     
-    # ==========================================
-    # 📊 Streak Tracking Variables
-    # ==========================================
     current_win_streak = 0
     current_lose_streak = 0
     longest_win_streak = 0
@@ -957,6 +924,8 @@ async def auto_bet_loop(user_tg_id, message: types.Message):
             if issue and issue != last_issue:
                 if gn == "WINGO_1M":
                     await asyncio.sleep(30)
+                elif gn == "WINGO_30S":
+                    await asyncio.sleep(10) # 10s wait so it shows 20s before result
                     
                 if pred == "wait":
                     msg_txt = (
@@ -1046,14 +1015,22 @@ async def auto_bet_loop(user_tg_id, message: types.Message):
                 )
                 await message.answer(bet_txt)
                 last_issue = issue
-                await asyncio.sleep(7) 
+                
+                # 🔥 FIX: Wait exactly for the game duration before checking result
+                if gn == "WINGO_30S":
+                    await asyncio.sleep(30)  # Wait 30s to finish
+                elif gn == "WINGO_1M":
+                    await asyncio.sleep(60)  # Wait 60s to finish
 
                 if is_virtual:
                     res = await get_latest_game_result(issue, user_tg_id)
-                    if res == "? | ?":
-                        rand_num = random.randint(0, 9)
-                        rand_size = 'BIG' if rand_num >= 5 else 'SMALL'
-                        res = f"{rand_num} | {rand_size}"
+                    for _ in range(3): # Check only 3 times (6s) as the game just ended
+                        if not active_sessions.get(user_tg_id, {}).get("is_auto_betting"):
+                            break 
+                        if res != "? | ?":
+                            break
+                        await asyncio.sleep(2)
+                        res = await get_latest_game_result(issue, user_tg_id)
                 else: 
                     success = await place_auto_bet(user_tg_id, issue, pred, amt, True)
                     if not success:
@@ -1061,7 +1038,7 @@ async def auto_bet_loop(user_tg_id, message: types.Message):
                         continue
                         
                     res = "? | ?"
-                    for _ in range(45):
+                    for _ in range(3): # Check only 3 times (6s) as the game just ended
                         if not active_sessions.get(user_tg_id, {}).get("is_auto_betting"):
                             break 
                         await asyncio.sleep(2)
@@ -1095,7 +1072,6 @@ async def auto_bet_loop(user_tg_id, message: types.Message):
                     total_bets += 1
                     
                     if pred.lower() == actual:
-                        # ========== WIN ==========
                         prof = amt * 0.96
                         stat = f"☉ <b>WIN</b> ✔ +{prof} Ks"
                         
@@ -1107,7 +1083,6 @@ async def auto_bet_loop(user_tg_id, message: types.Message):
                         active_sessions[user_tg_id]["current_bet_step"] = 0
                         active_sessions[user_tg_id]["current_misses"] = 0
                         
-                        # ✅ Streak Update
                         current_win_streak += 1
                         current_lose_streak = 0
                         total_wins += 1
@@ -1118,7 +1093,6 @@ async def auto_bet_loop(user_tg_id, message: types.Message):
                     elif actual == "?":
                         stat = "⚙️ DRAW (Pending)"
                     else:
-                        # ========== LOSE ==========
                         stat = f"☉ <b>LOSE</b> ✖ {amt} Ks"
                         
                         if is_virtual:
@@ -1128,7 +1102,6 @@ async def auto_bet_loop(user_tg_id, message: types.Message):
                             
                         active_sessions[user_tg_id]["current_bet_step"] = (step + 1) % len(seq)
                         
-                        # ❌ Streak Update
                         current_lose_streak += 1
                         current_win_streak = 0
                         total_losses += 1
@@ -1496,4 +1469,4 @@ if __name__ == '__main__':
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
-        print("Stopped.")
+        print("stopped")

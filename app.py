@@ -596,7 +596,7 @@ async def get_latest_game_result(target_issue, user_tg_id):
     config = SITE_CONFIGS.get(site)
     url = f"{config['api_url']}/GetNoaverageEmerdList"
     
-    payload = {'pageSize': 10, 'pageNo': 1, 'typeId': type_id, 'language': 7}
+    payload = {'pageSize': 100, 'pageNo': 1, 'typeId': type_id, 'language': 7}
     headers = get_headers(site, token)
     signed_payload = get_signed_payload(payload)
     
@@ -639,7 +639,7 @@ async def get_ai_prediction(user_tg_id):
     # ==========================================================
     # 1️⃣ API မှ နောက်ဆုံးပွဲစဉ် ရယူခြင်း (နောက်ပွဲစဉ် သိရန်)
     # ==========================================================
-    payload = {'pageSize': 10, 'pageNo': 1, 'typeId': type_id, 'language': 7}
+    payload = {'pageSize': 100, 'pageNo': 1, 'typeId': type_id, 'language': 7}
     headers = get_headers(site, token)
     signed_payload = get_signed_payload(payload)
 

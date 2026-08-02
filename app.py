@@ -821,7 +821,7 @@ async def prediction_broadcast_loop(user_tg_id, message: types.Message):
                 if gn == "WINGO_1M":
                     await asyncio.sleep(30)
                 elif gn == "WINGO_30S":
-                    await asyncio.sleep(10) # 10s wait so it shows 20s before result
+                    await asyncio.sleep(5)
                     
                 active_sessions[user_tg_id]["last_predicted_issue"] = issue
                 active_sessions[user_tg_id]["last_prediction_value"] = pred
@@ -924,8 +924,6 @@ async def auto_bet_loop(user_tg_id, message: types.Message):
             if issue and issue != last_issue:
                 if gn == "WINGO_1M":
                     await asyncio.sleep(30)
-                elif gn == "WINGO_30S":
-                    await asyncio.sleep(10) # 10s wait so it shows 20s before result
                     
                 if pred == "wait":
                     msg_txt = (
@@ -1015,16 +1013,12 @@ async def auto_bet_loop(user_tg_id, message: types.Message):
                 )
                 await message.answer(bet_txt)
                 last_issue = issue
-                
-                # 🔥 FIX: Wait exactly for the game duration before checking result
-                if gn == "WINGO_30S":
-                    await asyncio.sleep(30)  # Wait 30s to finish
-                elif gn == "WINGO_1M":
-                    await asyncio.sleep(60)  # Wait 60s to finish
+                await asyncio.sleep(7) 
 
+                # ✅ FIX: Virtual Mode မှာ Random မသုံးတော့ပါ။ API Real Data ကိုသာ စောင့်ယူမည်။
                 if is_virtual:
                     res = await get_latest_game_result(issue, user_tg_id)
-                    for _ in range(3): # Check only 3 times (6s) as the game just ended
+                    for _ in range(45):
                         if not active_sessions.get(user_tg_id, {}).get("is_auto_betting"):
                             break 
                         if res != "? | ?":
@@ -1038,7 +1032,7 @@ async def auto_bet_loop(user_tg_id, message: types.Message):
                         continue
                         
                     res = "? | ?"
-                    for _ in range(3): # Check only 3 times (6s) as the game just ended
+                    for _ in range(45):
                         if not active_sessions.get(user_tg_id, {}).get("is_auto_betting"):
                             break 
                         await asyncio.sleep(2)
@@ -1469,4 +1463,4 @@ if __name__ == '__main__':
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
-        print("stopped")
+        print("Stopped.")

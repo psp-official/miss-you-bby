@@ -13,4 +13,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY *.py .
 COPY .env .
 
-CMD ["python", "bot.py"]
+CMD ["python", "app.py"]
